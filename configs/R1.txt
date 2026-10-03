@@ -1,0 +1,88 @@
+hostname R1
+!
+! --- Loopback ---
+interface Loopback0
+ ip address 1.1.1.1 255.255.255.255
+!
+! --- LAN trunk and sub-interfaces (router-on-a-stick) ---
+interface GigabitEthernet0/0/0
+ no shutdown
+!
+interface GigabitEthernet0/0/0.20
+ encapsulation dot1Q 20
+ ip address 172.29.2.225 255.255.255.240
+ ip nat inside
+interface GigabitEthernet0/0/0.30
+ encapsulation dot1Q 30
+ ip address 172.29.2.193 255.255.255.224
+ ip nat inside
+interface GigabitEthernet0/0/0.31
+ encapsulation dot1Q 31
+ ip address 172.29.2.129 255.255.255.192
+ ip nat inside
+interface GigabitEthernet0/0/0.32
+ encapsulation dot1Q 32
+ ip address 172.29.2.1 255.255.255.128
+ ip nat inside
+interface GigabitEthernet0/0/0.100
+ encapsulation dot1Q 100
+ ip address 172.29.3.1 255.255.255.0
+ ip nat inside
+interface GigabitEthernet0/0/0.200
+ encapsulation dot1Q 200 native
+interface GigabitEthernet0/0/0.999
+ encapsulation dot1Q 999
+ ip address 172.29.99.1 255.255.255.252
+ ip nat inside
+!
+! --- WAN ---
+interface GigabitEthernet0/0/1
+ ip address 20.20.20.1 255.255.255.0
+ ip nat outside
+ ip access-group 101 in
+ no shutdown
+!
+! --- DHCP ---
+ip dhcp excluded-address 172.29.2.1
+ip dhcp excluded-address 172.29.2.129
+ip dhcp excluded-address 172.29.2.193
+ip dhcp excluded-address 172.29.2.225
+ip dhcp excluded-address 172.29.3.1
+ip dhcp excluded-address 172.29.99.1
+!
+ip dhcp pool VLAN32
+ network 172.29.2.0 255.255.255.128
+ default-router 172.29.2.1
+ dns-server 8.8.8.8
+ip dhcp pool VLAN31
+ network 172.29.2.128 255.255.255.192
+ default-router 172.29.2.129
+ dns-server 8.8.8.8
+ip dhcp pool VLAN30
+ network 172.29.2.192 255.255.255.224
+ default-router 172.29.2.193
+ dns-server 8.8.8.8
+ip dhcp pool VLAN20
+ network 172.29.2.224 255.255.255.240
+ default-router 172.29.2.225
+ dns-server 8.8.8.8
+ip dhcp pool AP-GUEST-VLAN100
+ network 172.29.3.0 255.255.255.0
+ default-router 172.29.3.1
+ dns-server 8.8.8.8
+ip dhcp pool SERVER-VLAN999
+ network 172.29.99.0 255.255.255.252
+ default-router 172.29.99.1
+!
+! --- NAT: ACL 100 selects what gets translated (server subnet excluded) ---
+access-list 100 deny   ip 172.29.99.0 0.0.0.3 any
+access-list 100 permit ip 172.29.0.0 0.0.3.255 any
+ip nat inside source list 100 interface GigabitEthernet0/0/1 overload
+!
+! --- Server protection: block public network to server subnet ---
+access-list 101 deny   ip 20.20.20.0 0.0.0.255 172.29.99.0 0.0.0.3
+access-list 101 permit ip any any
+!
+! --- Routing ---
+ip route 20.20.20.0 255.255.255.0 20.20.20.2
+ip route 0.0.0.0 0.0.0.0 GigabitEthernet0/0/1

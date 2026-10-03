@@ -1,0 +1,63 @@
+hostname SW1
+!
+! --- VLANs ---
+vlan 20
+ name STAFF-20
+vlan 30
+ name STAFF-30
+vlan 31
+ name STAFF-31
+vlan 32
+ name STAFF-32
+vlan 50
+ name UNUSED
+vlan 100
+ name GUEST-WIFI
+vlan 200
+ name NATIVE
+vlan 999
+ name INTERNAL-SERVER
+!
+! --- RSTP: converges in seconds instead of 30-50 s ---
+spanning-tree mode rapid-pvst
+!
+! --- Trunk to router: native VLAN 200, VLANs 1 and 50 not allowed ---
+interface GigabitEthernet0/1
+ switchport mode trunk
+ switchport trunk native vlan 200
+ switchport trunk allowed vlan 20,30,31,32,100,200,999
+ no shutdown
+!
+! --- End devices (PortFast skips listening/learning) ---
+interface range FastEthernet0/1-2
+ switchport mode access
+ switchport access vlan 20
+ spanning-tree portfast
+interface range FastEthernet0/3-5
+ switchport mode access
+ switchport access vlan 30
+ spanning-tree portfast
+interface range FastEthernet0/6-8
+ switchport mode access
+ switchport access vlan 31
+ spanning-tree portfast
+interface range FastEthernet0/9-12
+ switchport mode access
+ switchport access vlan 32
+ spanning-tree portfast
+interface FastEthernet0/13
+ switchport mode access
+ switchport access vlan 999
+ spanning-tree portfast
+!
+! --- Access points (guest VLAN) ---
+interface range FastEthernet0/21-24
+ switchport mode access
+ switchport access vlan 100
+ spanning-tree portfast
+!
+! --- Unused ports: parked in VLAN 50 and shut down ---
+interface range FastEthernet0/14-20
+ switchport mode access
+ switchport access vlan 50
+ shutdown

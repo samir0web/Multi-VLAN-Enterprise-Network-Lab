@@ -1,0 +1,7 @@
+hostname ISP-L3
+!
+! no switchport turns the port into a routed (Layer 3) port
+interface GigabitEthernet1/0/1
+ no switchport
+ ip address 20.20.20.2 255.255.255.0
+ no shutdown
